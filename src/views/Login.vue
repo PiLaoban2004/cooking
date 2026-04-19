@@ -5,26 +5,26 @@
       <div class="cover">
         <div class="cover__art">
           <!-- 装饰性图案：手绘食材插图 -->
-          <svg viewBox="0 0 200 160" class="cover__svg" aria-hidden="true">
+          <svg viewBox="0 0 200 160" class="cover__svg floating" aria-hidden="true">
             <!-- 碗 -->
-            <path d="M 40 80 Q 40 130 100 130 Q 160 130 160 80 Z"
+            <path class="draw-path" d="M 40 80 Q 40 130 100 130 Q 160 130 160 80 Z"
                   fill="none" stroke="#3A2618" stroke-width="2" stroke-linecap="round"/>
-            <ellipse cx="100" cy="80" rx="60" ry="12"
+            <ellipse class="draw-path" cx="100" cy="80" rx="60" ry="12"
                      fill="none" stroke="#3A2618" stroke-width="2"/>
             <!-- 蒸汽 -->
-            <path d="M 75 65 Q 72 55 78 45 Q 82 35 75 25"
-                  fill="none" stroke="#E85D3C" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
-            <path d="M 100 60 Q 96 50 102 40 Q 108 28 100 18"
-                  fill="none" stroke="#E85D3C" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
-            <path d="M 125 65 Q 122 55 128 45 Q 132 35 125 25"
-                  fill="none" stroke="#E85D3C" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+            <path class="steam" d="M 75 65 Q 72 55 78 45 Q 82 35 75 25"
+                  fill="none" stroke="#E85D3C" stroke-width="2" stroke-linecap="round"/>
+            <path class="steam" style="animation-delay: 0.2s" d="M 100 60 Q 96 50 102 40 Q 108 28 100 18"
+                  fill="none" stroke="#E85D3C" stroke-width="2" stroke-linecap="round"/>
+            <path class="steam" style="animation-delay: 0.4s" d="M 125 65 Q 122 55 128 45 Q 132 35 125 25"
+                  fill="none" stroke="#E85D3C" stroke-width="2" stroke-linecap="round"/>
             <!-- 碗里的内容 -->
-            <circle cx="85" cy="85" r="4" fill="#E85D3C"/>
-            <circle cx="105" cy="88" r="3" fill="#E85D3C" opacity="0.6"/>
-            <circle cx="120" cy="85" r="4" fill="#E85D3C"/>
+            <circle class="draw-dot" cx="85" cy="85" r="4" fill="#E85D3C"/>
+            <circle class="draw-dot" cx="105" cy="88" r="3" fill="#E85D3C" opacity="0.6"/>
+            <circle class="draw-dot" cx="120" cy="85" r="4" fill="#E85D3C"/>
             <!-- 筷子 -->
-            <line x1="150" y1="30" x2="175" y2="100" stroke="#3A2618" stroke-width="2.5" stroke-linecap="round"/>
-            <line x1="158" y1="28" x2="183" y2="98" stroke="#3A2618" stroke-width="2.5" stroke-linecap="round"/>
+            <line class="draw-path" x1="150" y1="30" x2="175" y2="100" stroke="#3A2618" stroke-width="2.5" stroke-linecap="round"/>
+            <line class="draw-path" x1="158" y1="28" x2="183" y2="98" stroke="#3A2618" stroke-width="2.5" stroke-linecap="round"/>
           </svg>
         </div>
         <h1 class="cover__title">
@@ -181,6 +181,40 @@ function onLogout() {
 <style lang="scss" scoped>
 @use '@/styles/variables' as *;
 
+/* SVG 画线动画 */
+.draw-path {
+  stroke-dasharray: 400;
+  stroke-dashoffset: 400;
+  animation: draw 1.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+.draw-dot {
+  opacity: 0;
+  animation: fadeIn 0.5s ease 1s forwards;
+}
+.steam {
+  stroke-dasharray: 50;
+  stroke-dashoffset: 50;
+  animation: draw 1s ease forwards, floatSteam 2s infinite alternate;
+  opacity: 0.7;
+}
+@keyframes draw {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes fadeIn {
+  to { opacity: 1; }
+}
+@keyframes floatSteam {
+  0% { transform: translateY(0) scaleX(1); opacity: 0.5; }
+  100% { transform: translateY(-5px) scaleX(1.1); opacity: 0.8; }
+}
+.floating {
+  animation: float 4s ease-in-out infinite;
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
 .login {
   min-height: 100vh;
   background: $color-bg;
@@ -315,26 +349,33 @@ function onLogout() {
     justify-content: center;
     gap: $sp-3;
     box-shadow: $shadow-primary;
-    transition: all $duration-base $ease-out;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     position: relative;
     overflow: hidden;
 
-    &:active {
-      transform: scale(0.98);
-    }
-
-    // hover 光晕
-    &::before {
+    &::after {
       content: '';
       position: absolute;
-      inset: 0;
-      background: linear-gradient(45deg, transparent, rgba(255,255,255,0.15), transparent);
-      transform: translateX(-100%);
-      transition: transform $duration-slow $ease-out;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(45deg, transparent, rgba(255,255,255,0.2), transparent);
+      transform: translateX(-100%) rotate(45deg);
+      transition: transform 0.6s ease;
     }
 
-    &:hover::before {
-      transform: translateX(100%);
+    &:hover {
+      box-shadow: 0 8px 20px rgba(232, 93, 60, 0.3);
+      transform: translateY(-2px);
+    }
+
+    &:hover::after {
+      transform: translateX(100%) rotate(45deg);
+    }
+
+    &:active {
+      transform: translateY(0) scale(0.96);
     }
   }
 
@@ -468,14 +509,19 @@ function onLogout() {
     padding: $sp-4 $sp-5;
     border-bottom: 1px solid $color-border;
     color: $color-text;
-    transition: background $duration-fast $ease-out;
+    transition: all 0.3s ease;
 
     &:last-child {
       border-bottom: none;
     }
 
+    &:hover {
+      background: rgba(0,0,0,0.02);
+      transform: translateX(6px);
+    }
+
     &:active {
-      background: $color-bg-warm;
+      transform: translateX(2px) scale(0.98);
     }
   }
 

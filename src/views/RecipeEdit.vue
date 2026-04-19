@@ -106,12 +106,14 @@
         <div class="block__label">
           <span class="block__num">02</span><span>食材清单</span>
         </div>
-        <div v-for="(ing, i) in form.ingredients" :key="i" class="dyn-row">
-          <input v-model="ing.name" class="dyn-row__input dyn-row__input--name" placeholder="食材名" />
-          <input v-model="ing.amount" class="dyn-row__input dyn-row__input--amount" placeholder="用量" />
-          <button class="dyn-row__del" @click="removeIngredient(i)" type="button"
-                  :disabled="form.ingredients.length <= 1">−</button>
-        </div>
+        <transition-group name="list-vertical" tag="div">
+          <div v-for="(ing, i) in form.ingredients" :key="ing._id || i" class="dyn-row">
+            <input v-model="ing.name" class="dyn-row__input dyn-row__input--name" placeholder="食材名" />
+            <input v-model="ing.amount" class="dyn-row__input dyn-row__input--amount" placeholder="用量" />
+            <button class="dyn-row__del" @click="removeIngredient(i)" type="button"
+                    :disabled="form.ingredients.length <= 1">−</button>
+          </div>
+        </transition-group>
         <button class="add-btn" @click="addIngredient" type="button">
           <span>+</span><span>添加食材</span>
         </button>
@@ -122,50 +124,52 @@
         <div class="block__label">
           <span class="block__num">03</span><span>烹饪步骤</span>
         </div>
-        <div v-for="(step, i) in form.steps" :key="i" class="step-card">
-          <div class="step-card__header">
-            <span class="step-card__num">{{ String(i + 1).padStart(2, '0') }}</span>
-            <button class="step-card__del" @click="removeStep(i)" type="button"
-                    :disabled="form.steps.length <= 1">−</button>
-          </div>
-          
-          <textarea v-model="step.text" class="step-card__input" rows="2"
-                    :placeholder="`第 ${i + 1} 步...`"></textarea>
-          
-          <!-- 步骤图片 -->
-          <div class="step-card__image">
-            <div v-if="step.image" class="step-img">
-              <img :src="step.image" alt="步骤图" class="step-img__pic" />
-              <div class="step-img__mask">
-                <button type="button" class="step-img__btn" @click="triggerStepPick(i)" 
-                        :disabled="uploadingSteps[i]">
-                  {{ uploadingSteps[i] ? '上传中…' : '更换' }}
-                </button>
-                <button type="button" class="step-img__btn step-img__btn--ghost" 
-                        @click="step.image = ''" :disabled="uploadingSteps[i]">
-                  移除
-                </button>
-              </div>
-              <div v-if="uploadingSteps[i]" class="step-img__progress">
-                <div class="step-img__progress-bar"></div>
-              </div>
+        <transition-group name="list-vertical" tag="div">
+          <div v-for="(step, i) in form.steps" :key="step._id || i" class="step-card">
+            <div class="step-card__header">
+              <span class="step-card__num">{{ String(i + 1).padStart(2, '0') }}</span>
+              <button class="step-card__del" @click="removeStep(i)" type="button"
+                      :disabled="form.steps.length <= 1">−</button>
             </div>
             
-            <button v-else type="button" class="step-picker" @click="triggerStepPick(i)" 
-                    :disabled="uploadingSteps[i]">
-              <span class="step-picker__icon">📷</span>
-              <span class="step-picker__text">{{ uploadingSteps[i] ? '上传中…' : '添加步骤图片' }}</span>
-            </button>
+            <textarea v-model="step.text" class="step-card__input" rows="2"
+                      :placeholder="`第 ${i + 1} 步...`"></textarea>
             
-            <input
-              :ref="el => stepFileInputs[i] = el"
-              type="file"
-              accept="image/jpeg,image/png,image/webp,image/gif"
-              style="display:none"
-              @change="e => onStepFileChange(e, i)"
-            />
+            <!-- 步骤图片 -->
+            <div class="step-card__image">
+              <div v-if="step.image" class="step-img">
+                <img :src="step.image" alt="步骤图" class="step-img__pic" />
+                <div class="step-img__mask">
+                  <button type="button" class="step-img__btn" @click="triggerStepPick(i)" 
+                          :disabled="uploadingSteps[i]">
+                    {{ uploadingSteps[i] ? '上传中…' : '更换' }}
+                  </button>
+                  <button type="button" class="step-img__btn step-img__btn--ghost" 
+                          @click="step.image = ''" :disabled="uploadingSteps[i]">
+                    移除
+                  </button>
+                </div>
+                <div v-if="uploadingSteps[i]" class="step-img__progress">
+                  <div class="step-img__progress-bar"></div>
+                </div>
+              </div>
+              
+              <button v-else type="button" class="step-picker" @click="triggerStepPick(i)" 
+                      :disabled="uploadingSteps[i]">
+                <span class="step-picker__icon">📷</span>
+                <span class="step-picker__text">{{ uploadingSteps[i] ? '上传中…' : '添加步骤图片' }}</span>
+              </button>
+              
+              <input
+                :ref="el => stepFileInputs[i] = el"
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                style="display:none"
+                @change="e => onStepFileChange(e, i)"
+              />
+            </div>
           </div>
-        </div>
+        </transition-group>
         <button class="add-btn" @click="addStep" type="button">
           <span>+</span><span>添加步骤</span>
         </button>
@@ -260,9 +264,9 @@ async function onFileChange(e) {
   }
 }
 
-function addIngredient() { form.value.ingredients.push({ name: '', amount: '' }) }
+function addIngredient() { form.value.ingredients.push({ _id: Date.now(), name: '', amount: '' }) }
 function removeIngredient(i) { if (form.value.ingredients.length > 1) form.value.ingredients.splice(i, 1) }
-function addStep() { form.value.steps.push({ text: '', image: '' }) }
+function addStep() { form.value.steps.push({ _id: Date.now(), text: '', image: '' }) }
 function removeStep(i) { if (form.value.steps.length > 1) form.value.steps.splice(i, 1) }
 
 // ---------- 步骤图片上传 ----------
@@ -362,6 +366,19 @@ async function onDelete() {
 <style lang="scss" scoped>
 @use '@/styles/variables' as *;
 
+/* 垂直列表增加/删除动画 */
+.list-vertical-enter-active, .list-vertical-leave-active {
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.list-vertical-enter-from {
+  opacity: 0;
+  transform: translateY(-20px) scale(0.98);
+}
+.list-vertical-leave-to {
+  opacity: 0;
+  transform: translateX(30px);
+}
+
 .edit { min-height: 100vh; background: $color-bg; }
 
 .edit-top {
@@ -376,8 +393,13 @@ async function onDelete() {
   &__save {
     padding: 8px $sp-4; background: $color-primary; color: white;
     border-radius: $radius-full; font-size: $fs-sm; font-weight: $fw-medium;
-    box-shadow: $shadow-primary; transition: opacity $duration-fast $ease-out;
+    box-shadow: $shadow-primary; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     &:disabled { opacity: 0.5; }
+    &:active:not(:disabled) { transform: scale(0.9); }
+    &:hover:not(:disabled) {
+      box-shadow: 0 6px 16px rgba(232,93,60,0.3);
+      transform: translateY(-1px);
+    }
   }
 }
 
@@ -400,8 +422,13 @@ async function onDelete() {
   &__label { display: block; font-size: $fs-xs; font-weight: $fw-medium; color: $color-text-secondary; letter-spacing: 0.05em; margin-bottom: $sp-2; text-transform: uppercase; }
   &__input {
     width: 100%; padding: 10px $sp-3; background: $color-bg-warm; border: 1px solid transparent;
-    border-radius: $radius-md; font-size: $fs-sm; color: $color-text; transition: all $duration-fast $ease-out;
-    &:focus { background: white; border-color: $color-primary; box-shadow: 0 0 0 3px rgba(232,93,60,0.1); }
+    border-radius: $radius-md; font-size: $fs-sm; color: $color-text; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    &:focus {
+      background: white;
+      border-color: $color-primary;
+      box-shadow: 0 0 0 4px rgba(232,93,60,0.15);
+      transform: translateY(-1px);
+    }
     &--big { font-family: $font-display; font-size: $fs-md; font-weight: $fw-semibold; }
     &--area { resize: vertical; line-height: $lh-loose; font-family: $font-body; }
   }

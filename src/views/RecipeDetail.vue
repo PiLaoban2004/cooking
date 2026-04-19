@@ -164,6 +164,15 @@ function goEdit() {
 <style lang="scss" scoped>
 @use '@/styles/variables' as *;
 
+/* 头图加载特效 */
+.hero__img {
+  animation: scaleDown 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes scaleDown {
+  0% { transform: scale(1.1); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
 .detail {
   min-height: 100vh;
   padding-bottom: $sp-12;
@@ -197,10 +206,14 @@ function goEdit() {
     font-size: 22px;
     color: $color-text;
     pointer-events: auto;
-    transition: transform $duration-fast $ease-out;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+    &:hover {
+      transform: translateY(-2px) scale(1.05);
+    }
 
     &:active {
-      transform: scale(0.92);
+      transform: translateY(0) scale(0.9);
     }
 
     &--fav.is-faved {
@@ -433,6 +446,21 @@ function goEdit() {
     gap: $sp-2;
     padding: $sp-3 0;
     border-bottom: 1px dashed $color-border;
+    opacity: 0;
+    animation: slideInRight 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    transition: background 0.3s ease, padding-left 0.3s ease;
+
+    @for $i from 1 through 10 {
+      &:nth-child(#{$i}) {
+        animation-delay: #{$i * 100}ms;
+      }
+    }
+
+    &:hover {
+      background: rgba(0,0,0,0.02);
+      padding-left: 8px;
+      border-radius: 4px;
+    }
 
     &:last-child {
       border-bottom: none;
@@ -462,6 +490,11 @@ function goEdit() {
   }
 }
 
+@keyframes slideInRight {
+  0% { opacity: 0; transform: translateX(20px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
 // ==== 步骤 ====
 .steps {
   list-style: none;
@@ -473,6 +506,22 @@ function goEdit() {
     gap: $sp-4;
     padding: $sp-4 0;
     position: relative;
+    opacity: 0;
+    animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    transition: transform 0.3s ease;
+
+    @for $i from 1 through 10 {
+      &:nth-child(#{$i}) {
+        animation-delay: #{200 + $i * 150}ms;
+      }
+    }
+
+    &:hover {
+      .steps__index {
+        background: $color-primary;
+        transform: scale(1.1);
+      }
+    }
 
     &::after {
       content: '';
@@ -505,6 +554,7 @@ function goEdit() {
     letter-spacing: -0.02em;
     position: relative;
     z-index: 1;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   &__content {
@@ -527,6 +577,11 @@ function goEdit() {
     box-shadow: $shadow-sm;
     margin-top: $sp-3;
   }
+}
+
+@keyframes fadeInUp {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
 }
 
 // ==== 尾部 ====
