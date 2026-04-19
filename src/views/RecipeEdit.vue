@@ -122,12 +122,49 @@
         <div class="block__label">
           <span class="block__num">03</span><span>烹饪步骤</span>
         </div>
-        <div v-for="(step, i) in form.steps" :key="i" class="step-row">
-          <span class="step-row__num">{{ String(i + 1).padStart(2, '0') }}</span>
-          <textarea v-model="step.text" class="step-row__input" rows="2"
+        <div v-for="(step, i) in form.steps" :key="i" class="step-card">
+          <div class="step-card__header">
+            <span class="step-card__num">{{ String(i + 1).padStart(2, '0') }}</span>
+            <button class="step-card__del" @click="removeStep(i)" type="button"
+                    :disabled="form.steps.length <= 1">−</button>
+          </div>
+          
+          <textarea v-model="step.text" class="step-card__input" rows="2"
                     :placeholder="`第 ${i + 1} 步...`"></textarea>
-          <button class="step-row__del" @click="removeStep(i)" type="button"
-                  :disabled="form.steps.length <= 1">−</button>
+          
+          <!-- 步骤图片 -->
+          <div class="step-card__image">
+            <div v-if="step.image" class="step-img">
+              <img :src="step.image" alt="步骤图" class="step-img__pic" />
+              <div class="step-img__mask">
+                <button type="button" class="step-img__btn" @click="triggerStepPick(i)" 
+                        :disabled="uploadingSteps[i]">
+                  {{ uploadingSteps[i] ? '上传中…' : '更换' }}
+                </button>
+                <button type="button" class="step-img__btn step-img__btn--ghost" 
+                        @click="step.image = ''" :disabled="uploadingSteps[i]">
+                  移除
+                </button>
+              </div>
+              <div v-if="uploadingSteps[i]" class="step-img__progress">
+                <div class="step-img__progress-bar"></div>
+              </div>
+            </div>
+            
+            <button v-else type="button" class="step-picker" @click="triggerStepPick(i)" 
+                    :disabled="uploadingSteps[i]">
+              <span class="step-picker__icon">📷</span>
+              <span class="step-picker__text">{{ uploadingSteps[i] ? '上传中…' : '添加步骤图片' }}</span>
+            </button>
+            
+            <input
+              :ref="el => stepFileInputs[i] = el"
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              style="display:none"
+              @change="e => onStepFileChange(e, i)"
+            />
+          </div>
         </div>
         <button class="add-btn" @click="addStep" type="button">
           <span>+</span><span>添加步骤</span>
@@ -162,6 +199,8 @@ const selectableCats = computed(() => recipeStore.categories.filter(c => c.id !=
 const saving = ref(false)
 const uploading = ref(false)
 const fileInput = ref(null)
+const stepFileInputs = ref([])
+const uploadingSteps = ref({})
 
 const form = ref({
   title: '', subtitle: '',
@@ -169,7 +208,7 @@ const form = ref({
   category: 'meat', time: 30, servings: 2, difficulty: '简单',
   description: '', tags: [],
   ingredients: [{ name: '', amount: '' }],
-  steps: [{ text: '' }]
+  steps: [{ text: '', image: '' }]
 })
 
 onMounted(() => {
@@ -185,7 +224,7 @@ onMounted(() => {
       description: recipe.value.description || '',
       tags: recipe.value.tags || [],
       ingredients: recipe.value.ingredients.length ? recipe.value.ingredients : [{ name: '', amount: '' }],
-      steps: recipe.value.steps.length ? recipe.value.steps : [{ text: '' }]
+      steps: recipe.value.steps.length ? recipe.value.steps.map(s => ({ text: s.text || s, image: s.image || '' })) : [{ text: '', image: '' }]
     }))
   }
 })
@@ -223,8 +262,38 @@ async function onFileChange(e) {
 
 function addIngredient() { form.value.ingredients.push({ name: '', amount: '' }) }
 function removeIngredient(i) { if (form.value.ingredients.length > 1) form.value.ingredients.splice(i, 1) }
-function addStep() { form.value.steps.push({ text: '' }) }
+function addStep() { form.value.steps.push({ text: '', image: '' }) }
 function removeStep(i) { if (form.value.steps.length > 1) form.value.steps.splice(i, 1) }
+
+// ---------- 步骤图片上传 ----------
+function triggerStepPick(index) {
+  if (uploadingSteps.value[index]) return
+  stepFileInputs.value[index]?.click()
+}
+
+async function onStepFileChange(e, index) {
+  const file = e.target.files?.[0]
+  e.target.value = ''
+  if (!file) return
+
+  if (!file.type.startsWith('image/')) {
+    showToast('请选择图片文件'); return
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    showToast('图片不能超过 5MB'); return
+  }
+
+  uploadingSteps.value[index] = true
+  try {
+    const { url } = await uploadApi.image(file)
+    form.value.steps[index].image = url
+    showToast('上传成功 ✓')
+  } catch (err) {
+    showToast(err.message || '上传失败')
+  } finally {
+    delete uploadingSteps.value[index]
+  }
+}
 
 function validate() {
   if (!form.value.title.trim()) return '请填写菜名'
@@ -437,11 +506,160 @@ async function onDelete() {
   &__del { flex-shrink: 0; width: 30px; height: 30px; border-radius: $radius-full; background: $color-bg-warm; color: $color-text-secondary; font-size: 18px; display: flex; align-items: center; justify-content: center; &:disabled { opacity: 0.3; } }
 }
 
-.step-row {
-  display: flex; gap: $sp-3; margin-bottom: $sp-3; align-items: flex-start;
-  &__num { flex-shrink: 0; width: 32px; height: 32px; border-radius: $radius-full; background: $color-text; color: $color-bg; font-family: $font-display; font-size: $fs-xs; font-weight: $fw-bold; display: flex; align-items: center; justify-content: center; margin-top: 6px; }
-  &__input { flex: 1; padding: 10px $sp-3; background: $color-bg-warm; border: 1px solid transparent; border-radius: $radius-md; font-size: $fs-sm; color: $color-text; line-height: $lh-loose; font-family: $font-body; resize: vertical; &:focus { background: white; border-color: $color-primary; } }
-  &__del { flex-shrink: 0; width: 30px; height: 30px; border-radius: $radius-full; background: $color-bg-warm; color: $color-text-secondary; font-size: 18px; display: flex; align-items: center; justify-content: center; margin-top: 8px; &:disabled { opacity: 0.3; } }
+.step-card {
+  padding: $sp-4;
+  background: $color-bg-warm;
+  border-radius: $radius-md;
+  margin-bottom: $sp-3;
+  
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: $sp-3;
+  }
+  
+  &__num {
+    width: 32px; height: 32px;
+    border-radius: $radius-full;
+    background: $color-text;
+    color: $color-bg;
+    font-family: $font-display;
+    font-size: $fs-xs;
+    font-weight: $fw-bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  &__del {
+    width: 30px; height: 30px;
+    border-radius: $radius-full;
+    background: rgba(0,0,0,0.05);
+    color: $color-text-secondary;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    &:disabled { opacity: 0.3; }
+  }
+  
+  &__input {
+    width: 100%;
+    padding: 10px $sp-3;
+    background: white;
+    border: 1px solid transparent;
+    border-radius: $radius-md;
+    font-size: $fs-sm;
+    color: $color-text;
+    line-height: $lh-loose;
+    font-family: $font-body;
+    resize: vertical;
+    margin-bottom: $sp-3;
+    &:focus {
+      border-color: $color-primary;
+      box-shadow: 0 0 0 3px rgba(232,93,60,0.1);
+    }
+  }
+  
+  &__image {
+    margin-top: $sp-3;
+  }
+}
+
+.step-picker {
+  width: 100%;
+  padding: $sp-4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: white;
+  border: 1.5px dashed $color-border-strong;
+  border-radius: $radius-md;
+  color: $color-text-secondary;
+  transition: all $duration-fast $ease-out;
+  
+  &:hover:not(:disabled) {
+    background: $color-primary-soft;
+    border-color: $color-primary;
+    color: $color-primary;
+  }
+  &:disabled { opacity: 0.6; }
+  
+  &__icon { font-size: 24px; line-height: 1; }
+  &__text { font-size: $fs-xs; font-weight: $fw-medium; }
+}
+
+.step-img {
+  position: relative;
+  border-radius: $radius-md;
+  overflow: hidden;
+  background: white;
+  
+  &__pic {
+    width: 100%;
+    height: auto;
+    max-height: 300px;
+    object-fit: cover;
+    display: block;
+  }
+  
+  &__mask {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: $sp-2;
+    background: rgba(58, 38, 24, 0.55);
+    opacity: 0;
+    transition: opacity $duration-fast $ease-out;
+  }
+  &:hover &__mask, &__mask:has(:disabled) { opacity: 1; }
+  
+  @media (hover: none) {
+    &__mask {
+      opacity: 1;
+      background: linear-gradient(to top, rgba(58,38,24,0.7), transparent 55%);
+      align-items: flex-end;
+      padding: $sp-3;
+    }
+  }
+  
+  &__btn {
+    padding: 6px 12px;
+    background: white;
+    color: $color-text;
+    border-radius: $radius-full;
+    font-size: $fs-xs;
+    font-weight: $fw-medium;
+    transition: transform $duration-fast $ease-out;
+    &:active { transform: scale(0.95); }
+    &:disabled { opacity: 0.6; }
+    &--ghost {
+      background: transparent;
+      color: white;
+      border: 1px solid rgba(255,255,255,0.7);
+    }
+  }
+  
+  &__progress {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 3px;
+    background: rgba(255,255,255,0.3);
+    overflow: hidden;
+  }
+  &__progress-bar {
+    height: 100%;
+    width: 40%;
+    background: $color-primary;
+    animation: progress-slide 1.2s ease-in-out infinite;
+  }
 }
 
 .add-btn {

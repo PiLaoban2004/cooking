@@ -95,7 +95,10 @@
           class="steps__item"
         >
           <span class="steps__index">{{ String(i + 1).padStart(2, '0') }}</span>
-          <p class="steps__text">{{ step.text }}</p>
+          <div class="steps__content">
+            <p class="steps__text">{{ typeof step === 'string' ? step : step.text }}</p>
+            <img v-if="step.image" :src="step.image" :alt="`步骤 ${i + 1}`" class="steps__image" />
+          </div>
         </li>
       </ol>
     </section>
@@ -504,12 +507,25 @@ function goEdit() {
     z-index: 1;
   }
 
-  &__text {
+  &__content {
     flex: 1;
     padding-top: $sp-2;
+  }
+
+  &__text {
     font-size: $fs-base;
     line-height: $lh-loose;
     color: $color-text;
+    margin-bottom: $sp-3;
+  }
+
+  &__image {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    border-radius: $radius-md;
+    box-shadow: $shadow-sm;
+    margin-top: $sp-3;
   }
 }
 

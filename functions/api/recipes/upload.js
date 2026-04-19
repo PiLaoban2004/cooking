@@ -48,9 +48,9 @@ export async function onRequest(context) {
     return json({ ok: false, error: '图片不能超过 5MB' }, 400)
   }
 
-  // 生成唯一 key：recipes/时间戳-随机.扩展名
+  // 生成唯一 key：cookbook-images/recipes/时间戳-随机.扩展名
   const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
-  const key = `recipes/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+  const key = `cookbook-images/recipes/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
 
   // 上传到 R2
   await IMAGES.put(key, file.stream(), {
