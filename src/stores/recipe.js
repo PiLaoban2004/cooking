@@ -12,7 +12,8 @@ export const categories = [
   { id: 'veggie', name: '素菜', emoji: '🥬' },
   { id: 'soup', name: '汤羹', emoji: '🍲' },
   { id: 'staple', name: '主食', emoji: '🍚' },
-  { id: 'dessert', name: '甜品', emoji: '🍮' }
+  { id: 'dessert', name: '甜品', emoji: '🍮' },
+  { id: '1314', name: '1314', emoji: '❤️' }
 ]
 
 export const useRecipeStore = defineStore('recipe', () => {
