@@ -1,0 +1,90 @@
+# Implementation Plan
+
+- [ ] 1. Write bug condition exploration test
+  - **Property 1: Bug Condition** - API Path Mismatch Causes 405 Error
+  - **CRITICAL**: This test MUST FAIL on unfixed code - failure confirms the bug exists
+  - **DO NOT attempt to fix the test or the code when it fails**
+  - **NOTE**: This test encodes the expected behavior - it will validate the fix when it passes after implementation
+  - **GOAL**: Surface counterexamples that demonstrate the bug exists
+  - **Scoped PBT Approach**: For deterministic bugs, scope the property to the concrete failing case(s) to ensure reproducibility
+  - Test that `uploadApi.image` calls the incorrect path `/api/upload` when uploading a valid image file
+  - Create a property-based test that generates valid image files (JPEG, PNG, WebP, GIF) with sizes between 100KB and 5MB
+  - Mock the fetch API to intercept the request and verify the URL being called
+  - Assert that the request URL is `/api/upload` (the buggy path)
+  - Assert that the backend returns HTTP 405 Method Not Allowed
+  - Run test on UNFIXED code
+  - **EXPECTED OUTCOME**: Test FAILS (this is correct - it proves the bug exists)
+  - Document counterexamples found (e.g., "uploadApi.image(validJPEG) calls /api/upload instead of /api/recipes/upload, receives 405 error")
+  - Mark task complete when test is written, run, and failure is documented
+  - _Requirements: 1.1, 1.2, 2.1_
+
+- [ ] 2. Write preservation property tests (BEFORE implementing fix)
+  - **Property 2: Preservation** - Frontend Validation and UI Behavior
+  - **IMPORTANT**: Follow observation-first methodology
+  - Observe behavior on UNFIXED code for non-buggy inputs (validation errors, UI interactions)
+  - Write property-based tests capturing observed behavior patterns from Preservation Requirements
+  - Property-based testing generates many test cases for stronger guarantees
+  - **Test Case 1**: File type validation - generate non-image files (text/plain, application/pdf, etc.) and verify error message "请选择图片文件" is shown
+  - **Test Case 2**: File size validation - generate files larger than 5MB and verify error message "图片不能超过 5MB" is shown
+  - **Test Case 3**: Success message - mock successful upload response and verify "上传成功 ✓" toast is displayed
+  - **Test Case 4**: UI state transitions - verify uploading flag is set during upload, cover field is updated on success, and buttons are disabled during upload
+  - **Test Case 5**: Error handling - generate various error responses (network errors, server errors) and verify appropriate error messages are displayed
+  - Run tests on UNFIXED code
+  - **EXPECTED OUTCOME**: Tests PASS (this confirms baseline behavior to preserve)
+  - Mark task complete when tests are written, run, and passing on unfixed code
+  - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
+
+- [ ] 3. Fix for API path mismatch in image upload
+
+  - [ ] 3.1 Implement the fix
+    - Open `src/lib/api.js` file
+    - Locate the `uploadApi.image` function (around line 48)
+    - Change the fetch URL from `${BASE}/upload` to `${BASE}/recipes/upload`
+    - This aligns the frontend API path with the backend endpoint at `functions/api/recipes/upload.js`
+    - Verify the error handling logic properly surfaces HTTP status codes (line 52)
+    - No changes needed to `RecipeEdit.vue` component - it correctly calls `uploadApi.image(file)`
+    - No changes needed to backend endpoint `functions/api/recipes/upload.js` - it is correctly implemented
+    - _Bug_Condition: isBugCondition(input) where input.apiPath = "/api/upload" AND input.method = "POST" AND input.hasValidImageFile = true_
+    - _Expected_Behavior: uploadApi.image SHALL call `/api/recipes/upload`, receive HTTP 201 response, and return { url, key }_
+    - _Preservation: Frontend validation (file type, file size), error handling, UI state management, success messages, and all other non-path-related behaviors SHALL remain unchanged_
+    - _Requirements: 1.1, 1.2, 2.1, 2.2, 2.3, 3.1, 3.2, 3.3, 3.4, 3.5_
+
+  - [ ] 3.2 Verify bug condition exploration test now passes
+    - **Property 1: Expected Behavior** - Correct API Path Usage
+    - **IMPORTANT**: Re-run the SAME test from task 1 - do NOT write a new test
+    - The test from task 1 encodes the expected behavior
+    - When this test passes, it confirms the expected behavior is satisfied
+    - Run bug condition exploration test from step 1
+    - Verify that `uploadApi.image` now calls `/api/recipes/upload` (the correct path)
+    - Verify that the backend returns HTTP 201 Created
+    - Verify that the response contains valid `url` and `key` fields
+    - **EXPECTED OUTCOME**: Test PASSES (confirms bug is fixed)
+    - _Requirements: 2.1, 2.2_
+
+  - [ ] 3.3 Verify preservation tests still pass
+    - **Property 2: Preservation** - Frontend Validation and UI Behavior
+    - **IMPORTANT**: Re-run the SAME tests from task 2 - do NOT write new tests
+    - Run preservation property tests from step 2
+    - Verify file type validation still shows "请选择图片文件" for non-image files
+    - Verify file size validation still shows "图片不能超过 5MB" for oversized files
+    - Verify success message "上传成功 ✓" still displays after successful upload
+    - Verify UI state transitions (uploading flag, cover field update, button states) still work correctly
+    - Verify error handling for non-path-related errors still displays appropriate messages
+    - **EXPECTED OUTCOME**: Tests PASS (confirms no regressions)
+    - Confirm all tests still pass after fix (no regressions)
+    - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
+
+- [ ] 4. Checkpoint - Ensure all tests pass
+  - Run all tests (bug condition test + preservation tests)
+  - Verify all tests pass
+  - Manually test the upload flow in the browser:
+    - Navigate to RecipeEdit page (new recipe or edit existing)
+    - Click "点击上传封面" button
+    - Select a valid image file (JPEG, PNG, WebP, or GIF, under 5MB)
+    - Verify upload succeeds and image preview is displayed
+    - Verify "上传成功 ✓" toast message appears
+    - Verify the cover field is populated with the R2 public URL
+    - Test "更换图片" (replace) and "移除" (remove) buttons
+    - Test validation errors (non-image file, oversized file)
+  - If any issues arise, ask the user for guidance
+  - Mark complete when all tests pass and manual testing confirms the fix works

@@ -49,7 +49,7 @@ export const uploadApi = {
     const form = new FormData()
     form.append('file', file)
 
-    const res = await fetch(`${BASE}/upload`, {
+    const res = await fetch(`${BASE}/recipes/upload`, {
       method: 'POST',
       body: form  // 不设 Content-Type，浏览器会自动带 boundary
     })
