@@ -88,7 +88,7 @@
           </div>
           <div class="stats__divider"></div>
           <div class="stats__item">
-            <span class="stats__num">{{ recipeStore.customRecipes.length }}</span>
+            <span class="stats__num">{{ recipeStore.recipes.length }}</span>
             <span class="stats__label">创作</span>
           </div>
           <div class="stats__divider"></div>
