@@ -28,13 +28,43 @@
                  placeholder="用一句话形容这道菜的灵魂" maxlength="30" />
         </div>
 
+        <!-- ▼▼▼ 封面图：改为上传组件 ▼▼▼ -->
         <div class="field">
-          <label class="field__label">封面图（URL）</label>
-          <input v-model="form.cover" class="field__input" placeholder="粘贴图片链接" />
-          <div v-if="form.cover" class="field__preview">
-            <img :src="form.cover" alt="preview" />
+          <label class="field__label">封面图</label>
+
+          <!-- 已有图片：展示预览 + 替换/移除按钮 -->
+          <div v-if="form.cover" class="cover">
+            <img :src="form.cover" alt="cover" class="cover__img" />
+            <div class="cover__mask">
+              <button type="button" class="cover__btn" @click="triggerPick" :disabled="uploading">
+                {{ uploading ? '上传中…' : '更换图片' }}
+              </button>
+              <button type="button" class="cover__btn cover__btn--ghost" @click="form.cover = ''" :disabled="uploading">
+                移除
+              </button>
+            </div>
+            <div v-if="uploading" class="cover__progress">
+              <div class="cover__progress-bar"></div>
+            </div>
           </div>
+
+          <!-- 空状态：上传占位符 -->
+          <button v-else type="button" class="picker" @click="triggerPick" :disabled="uploading">
+            <span class="picker__icon">📷</span>
+            <span class="picker__text">{{ uploading ? '上传中…' : '点击上传封面' }}</span>
+            <span class="picker__hint">支持 jpg / png / webp，不超过 5MB</span>
+          </button>
+
+          <!-- 隐藏的文件选择器 -->
+          <input
+            ref="fileInput"
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            style="display:none"
+            @change="onFileChange"
+          />
         </div>
+        <!-- ▲▲▲ 封面图结束 ▲▲▲ -->
 
         <div class="field">
           <label class="field__label">分类</label>
@@ -104,7 +134,6 @@
         </button>
       </section>
 
-      <!-- 删除（编辑态） -->
       <div v-if="isEditing && recipe?.isCustom" class="danger-zone">
         <button class="danger-btn" @click="onDelete" type="button" :disabled="saving">
           删除这道菜
@@ -119,6 +148,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useRecipeStore } from '@/stores/recipe'
 import { useUserStore } from '@/stores/user'
+import { uploadApi } from '@/lib/api'
 import { showToast, showConfirmDialog } from 'vant'
 
 const route = useRoute()
@@ -130,10 +160,12 @@ const isEditing = computed(() => !!route.params.id)
 const recipe = computed(() => route.params.id ? recipeStore.getRecipeById(route.params.id) : null)
 const selectableCats = computed(() => recipeStore.categories.filter(c => c.id !== 'all'))
 const saving = ref(false)
+const uploading = ref(false)
+const fileInput = ref(null)
 
 const form = ref({
   title: '', subtitle: '',
-  cover: 'https://images.unsplash.com/photo-1473093226795-af9932fe5856?w=800&q=80',
+  cover: '',
   category: 'meat', time: 30, servings: 2, difficulty: '简单',
   description: '', tags: [],
   ingredients: [{ name: '', amount: '' }],
@@ -158,6 +190,37 @@ onMounted(() => {
   }
 })
 
+// ---------- 图片上传 ----------
+function triggerPick() {
+  if (uploading.value) return
+  fileInput.value?.click()
+}
+
+async function onFileChange(e) {
+  const file = e.target.files?.[0]
+  e.target.value = ''  // 重置，允许重复选同一文件
+  if (!file) return
+
+  // 前端预校验
+  if (!file.type.startsWith('image/')) {
+    showToast('请选择图片文件'); return
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    showToast('图片不能超过 5MB'); return
+  }
+
+  uploading.value = true
+  try {
+    const { url } = await uploadApi.image(file)
+    form.value.cover = url
+    showToast('上传成功 ✓')
+  } catch (err) {
+    showToast(err.message || '上传失败')
+  } finally {
+    uploading.value = false
+  }
+}
+
 function addIngredient() { form.value.ingredients.push({ name: '', amount: '' }) }
 function removeIngredient(i) { if (form.value.ingredients.length > 1) form.value.ingredients.splice(i, 1) }
 function addStep() { form.value.steps.push({ text: '' }) }
@@ -166,6 +229,7 @@ function removeStep(i) { if (form.value.steps.length > 1) form.value.steps.splic
 function validate() {
   if (!form.value.title.trim()) return '请填写菜名'
   if (!form.value.subtitle.trim()) return '请填写一句话描述'
+  if (!form.value.cover) return '请上传封面图'
   const validIngs = form.value.ingredients.filter(i => i.name.trim() && i.amount.trim())
   if (!validIngs.length) return '至少需要一个食材'
   const validSteps = form.value.steps.filter(s => s.text.trim())
@@ -238,7 +302,6 @@ async function onDelete() {
   background: rgba(250, 246, 240, 0.92);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid $color-border;
-
   &__back { width: 40px; height: 40px; font-size: 24px; color: $color-text; display: flex; align-items: center; justify-content: center; }
   &__title { font-family: $font-display; font-size: $fs-md; font-weight: $fw-semibold; }
   &__save {
@@ -273,10 +336,90 @@ async function onDelete() {
     &--big { font-family: $font-display; font-size: $fs-md; font-weight: $fw-semibold; }
     &--area { resize: vertical; line-height: $lh-loose; font-family: $font-body; }
   }
-  &__preview { margin-top: $sp-2; border-radius: $radius-md; overflow: hidden; aspect-ratio: 16/9; background: $color-bg-warm; img { width: 100%; height: 100%; object-fit: cover; } }
 }
 
 .field-row { display: flex; gap: $sp-3; margin-bottom: $sp-4; .field { margin-bottom: 0; } }
+
+// ---------- 封面上传 ----------
+.picker {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px;
+  background: $color-bg-warm;
+  border: 2px dashed $color-border-strong;
+  border-radius: $radius-md;
+  color: $color-text-secondary;
+  transition: all $duration-fast $ease-out;
+
+  &:hover:not(:disabled) {
+    background: $color-primary-soft;
+    border-color: $color-primary;
+    color: $color-primary;
+  }
+  &:disabled { opacity: 0.6; }
+
+  &__icon { font-size: 32px; line-height: 1; }
+  &__text { font-size: $fs-sm; font-weight: $fw-medium; }
+  &__hint { font-size: $fs-xs; color: $color-text-tertiary; }
+}
+
+.cover {
+  position: relative;
+  border-radius: $radius-md;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  background: $color-bg-warm;
+
+  &__img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  &__mask {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center; gap: $sp-2;
+    background: rgba(58, 38, 24, 0.55);
+    opacity: 0;
+    transition: opacity $duration-fast $ease-out;
+  }
+  &:hover &__mask, &__mask:has(:disabled) { opacity: 1; }
+  // 移动端 touch 时常显
+  @media (hover: none) {
+    &__mask { opacity: 1; background: linear-gradient(to top, rgba(58,38,24,0.7), transparent 55%); align-items: flex-end; padding: $sp-3; }
+  }
+
+  &__btn {
+    padding: 7px 14px;
+    background: white;
+    color: $color-text;
+    border-radius: $radius-full;
+    font-size: $fs-xs;
+    font-weight: $fw-medium;
+    transition: transform $duration-fast $ease-out;
+    &:active { transform: scale(0.95); }
+    &:disabled { opacity: 0.6; }
+    &--ghost {
+      background: transparent;
+      color: white;
+      border: 1px solid rgba(255,255,255,0.7);
+    }
+  }
+
+  &__progress {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 3px; background: rgba(255,255,255,0.3);
+    overflow: hidden;
+  }
+  &__progress-bar {
+    height: 100%;
+    width: 40%;
+    background: $color-primary;
+    animation: progress-slide 1.2s ease-in-out infinite;
+  }
+}
+
+@keyframes progress-slide {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(350%); }
+}
 
 .cat-pick {
   display: flex; gap: $sp-2; flex-wrap: wrap;
