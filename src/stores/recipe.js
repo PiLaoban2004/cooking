@@ -1,24 +1,31 @@
 // ============================================
-// 菜谱 store — CRUD 走 D1 API，mock 数据仍在前端
+// 菜谱 store — 所有数据从 D1 API 获取
 // ============================================
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { recipes as mockRecipes, categories } from '@/data/recipes'
 import { recipeApi } from '@/lib/api'
+
+// 分类数据保留在前端
+export const categories = [
+  { id: 'all', name: '全部', emoji: '🍽️' },
+  { id: 'meat', name: '肉菜', emoji: '🥩' },
+  { id: 'veggie', name: '素菜', emoji: '🥬' },
+  { id: 'soup', name: '汤羹', emoji: '🍲' },
+  { id: 'staple', name: '主食', emoji: '🍚' },
+  { id: 'dessert', name: '甜品', emoji: '🍮' }
+]
 
 export const useRecipeStore = defineStore('recipe', () => {
   // ---- state ----
-  const customRecipes = ref([])   // 从 D1 拉取的用户自建菜谱
+  const recipes = ref([])   // 从 D1 拉取的所有菜谱
   const activeCategory = ref('all')
   const searchKeyword = ref('')
   const loading = ref(false)
   const initialized = ref(false)  // 是否已首次加载
 
   // ---- getters ----
-  const allRecipes = computed(() => [...customRecipes.value, ...mockRecipes])
-
   const filteredRecipes = computed(() => {
-    let list = allRecipes.value
+    let list = recipes.value
 
     if (activeCategory.value !== 'all') {
       list = list.filter(r => r.category === activeCategory.value)
@@ -37,26 +44,27 @@ export const useRecipeStore = defineStore('recipe', () => {
   })
 
   function getRecipeById(id) {
-    return allRecipes.value.find(r => r.id === id)
+    return recipes.value.find(r => r.id === id)
   }
 
   // ---- actions ----
   function setCategory(categoryId) { activeCategory.value = categoryId }
   function setSearchKeyword(kw) { searchKeyword.value = kw }
 
-  /** 从 D1 拉取所有自建菜谱，初始化时调用一次 */
+  /** 从 D1 拉取所有菜谱，初始化时调用一次 */
   async function fetchCustomRecipes() {
     if (loading.value) return
     loading.value = true
     try {
       const data = await recipeApi.list()
-      customRecipes.value = data
+      recipes.value = data
       initialized.value = true
+      syncCache()
     } catch (e) {
       console.error('[recipe store] fetchCustomRecipes failed:', e)
       // 网络失败时降级：读 localStorage 缓存
-      const cached = localStorage.getItem('cookbook_custom_recipes')
-      if (cached) customRecipes.value = JSON.parse(cached)
+      const cached = localStorage.getItem('cookbook_recipes')
+      if (cached) recipes.value = JSON.parse(cached)
     } finally {
       loading.value = false
     }
@@ -71,7 +79,7 @@ export const useRecipeStore = defineStore('recipe', () => {
       isCustom: true
     }
     const created = await recipeApi.create(payload)
-    customRecipes.value.unshift(created)
+    recipes.value.unshift(created)
     syncCache()
     return created
   }
@@ -79,8 +87,8 @@ export const useRecipeStore = defineStore('recipe', () => {
   /** 更新菜谱 → PUT /api/recipes/:id */
   async function updateRecipe(id, updates) {
     const updated = await recipeApi.update(id, updates)
-    const idx = customRecipes.value.findIndex(r => r.id === id)
-    if (idx >= 0) customRecipes.value[idx] = updated
+    const idx = recipes.value.findIndex(r => r.id === id)
+    if (idx >= 0) recipes.value[idx] = updated
     syncCache()
     return updated
   }
@@ -88,25 +96,24 @@ export const useRecipeStore = defineStore('recipe', () => {
   /** 删除菜谱 → DELETE /api/recipes/:id */
   async function deleteRecipe(id) {
     await recipeApi.delete(id)
-    const idx = customRecipes.value.findIndex(r => r.id === id)
-    if (idx >= 0) customRecipes.value.splice(idx, 1)
+    const idx = recipes.value.findIndex(r => r.id === id)
+    if (idx >= 0) recipes.value.splice(idx, 1)
     syncCache()
     return true
   }
 
   /** 同步一份到 localStorage 作离线缓存 */
   function syncCache() {
-    localStorage.setItem('cookbook_custom_recipes', JSON.stringify(customRecipes.value))
+    localStorage.setItem('cookbook_recipes', JSON.stringify(recipes.value))
   }
 
   return {
-    customRecipes,
+    recipes,
     activeCategory,
     searchKeyword,
     loading,
     initialized,
     categories,
-    allRecipes,
     filteredRecipes,
     getRecipeById,
     setCategory,
