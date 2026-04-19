@@ -9,4 +9,8 @@ pages_build_output_dir = "dist"
 [[d1_databases]]
 binding      = "DB"           # Functions 里用 context.env.DB 访问
 database_name = "cookbook-db"
-database_id  = "70b3704c-ff45-41be-a71b-ea3292dee2f7"   # ← 替换这里
+database_id  = "70b3704c-ff45-41be-a71b-ea3292dee2f7"  
+
+[[r2_buckets]]
+binding     = "IMAGES"
+bucket_name = "cookbook-images"
