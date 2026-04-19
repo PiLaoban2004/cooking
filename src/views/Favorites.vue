@@ -6,40 +6,42 @@
       <span class="fav-top__count">{{ favoriteRecipes.length }} 道</span>
     </header>
 
-    <div v-if="favoriteRecipes.length === 0" class="empty">
-      <div class="empty__emoji">❤️</div>
-      <p class="empty__title">还没有收藏</p>
-      <p class="empty__hint">去首页寻找你喜欢的菜谱吧</p>
-      <button class="empty__btn" @click="router.push('/')">去发现</button>
-    </div>
+    <transition name="fade" mode="out-in">
+      <div v-if="favoriteRecipes.length === 0" class="empty">
+        <div class="empty__emoji floating">❤️</div>
+        <p class="empty__title fade-in-up" style="animation-delay: 100ms">还没有收藏</p>
+        <p class="empty__hint fade-in-up" style="animation-delay: 200ms">去首页寻找你喜欢的菜谱吧</p>
+        <button class="empty__btn fade-in-up" style="animation-delay: 300ms" @click="router.push('/')">去发现</button>
+      </div>
 
-    <div v-else class="list">
-      <article
-        v-for="(recipe, i) in favoriteRecipes"
-        :key="recipe.id"
-        class="row fade-in-up"
-        :style="{ animationDelay: `${i * 50}ms` }"
-        @click="goDetail(recipe.id)"
-      >
-        <div class="row__img">
-          <img :src="recipe.cover" :alt="recipe.title" loading="lazy" />
-        </div>
-        <div class="row__content">
-          <h3 class="row__title">{{ recipe.title }}</h3>
-          <p class="row__sub text-truncate">{{ recipe.subtitle }}</p>
-          <div class="row__meta">
-            <span>⏱ {{ recipe.time }}min</span>
-            <span>·</span>
-            <span>{{ recipe.difficulty }}</span>
+      <transition-group v-else name="list" tag="div" class="list">
+        <article
+          v-for="(recipe, i) in favoriteRecipes"
+          :key="recipe.id"
+          class="row list-item fade-in-up"
+          :style="{ animationDelay: `${i * 80}ms` }"
+          @click="goDetail(recipe.id)"
+        >
+          <div class="row__img">
+            <img :src="recipe.cover" :alt="recipe.title" loading="lazy" />
           </div>
-        </div>
-        <button
-          class="row__remove"
-          @click.stop="onRemove(recipe.id)"
-          title="取消收藏"
-        >✕</button>
-      </article>
-    </div>
+          <div class="row__content">
+            <h3 class="row__title">{{ recipe.title }}</h3>
+            <p class="row__sub text-truncate">{{ recipe.subtitle }}</p>
+            <div class="row__meta">
+              <span>⏱ {{ recipe.time }}min</span>
+              <span>·</span>
+              <span>{{ recipe.difficulty }}</span>
+            </div>
+          </div>
+          <button
+            class="row__remove"
+            @click.stop="onRemove(recipe.id)"
+            title="取消收藏"
+          >✕</button>
+        </article>
+      </transition-group>
+    </transition>
   </div>
 </template>
 
@@ -72,6 +74,24 @@ function onRemove(id) {
 
 <style lang="scss" scoped>
 @use '@/styles/variables' as *;
+
+.floating { animation: float 3s ease-in-out infinite; }
+@keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+@keyframes fadeInUp {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.fade-in-up {
+  opacity: 0;
+  animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* 列表移除动画 */
+.list-enter-active, .list-leave-active { transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+.list-enter-from, .list-leave-to { opacity: 0; transform: translateX(-30px); }
+.list-leave-active { position: absolute; width: calc(100% - 2 * #{$sp-4}); }
+.fade-enter-active, .fade-leave-active { transition: opacity 0.3s; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
 
 .fav {
   min-height: 100vh;
@@ -126,7 +146,13 @@ function onRemove(id) {
   cursor: pointer;
   position: relative;
   opacity: 0;
-  transition: transform $duration-fast $ease-out;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  will-change: transform;
+
+  &:hover {
+    transform: translateX(4px) translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.06);
+  }
 
   &:active {
     transform: scale(0.98);
@@ -189,11 +215,12 @@ function onRemove(id) {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all $duration-fast $ease-out;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 
     &:hover {
-      background: $color-primary-soft;
-      color: $color-primary;
+      background: $color-danger;
+      color: white;
+      transform: rotate(90deg) scale(1.1);
     }
   }
 }

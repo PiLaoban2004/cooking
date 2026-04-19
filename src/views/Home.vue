@@ -3,20 +3,20 @@
     <!-- Hero 区：杂志封面感 -->
     <header class="hero">
       <div class="hero__meta">
-        <span class="hero__issue">VOL.04 · 丙午年春</span>
-        <span class="hero__date">{{ today }}</span>
+        <span class="hero__issue fade-in-up">VOL.04 · 丙午年春</span>
+        <span class="hero__date fade-in-up" style="animation-delay: 100ms">{{ today }}</span>
       </div>
-      <h1 class="hero__title">
+      <h1 class="hero__title fade-in-up" style="animation-delay: 200ms">
         <span class="hero__title-line">今天</span>
         <span class="hero__title-line hero__title-accent">吃什么</span>
         <span class="hero__title-mark">?</span>
       </h1>
-      <p class="hero__subtitle">
+      <p class="hero__subtitle fade-in-up" style="animation-delay: 300ms">
         在厨房的烟火里 · 找一道治愈人心的家常味
       </p>
 
       <!-- 搜索框 -->
-      <div class="search">
+      <div class="search fade-in-up" style="animation-delay: 400ms">
         <span class="search__icon">⌕</span>
         <input
           v-model="searchInput"
@@ -25,12 +25,14 @@
           placeholder="搜索 红烧肉、番茄炒蛋、川菜…"
           @input="onSearch"
         />
-        <button v-if="searchInput" class="search__clear" @click="clearSearch">✕</button>
+        <transition name="scale">
+          <button v-if="searchInput" class="search__clear" @click="clearSearch">✕</button>
+        </transition>
       </div>
     </header>
 
     <!-- 分类 chips -->
-    <div class="cats">
+    <div class="cats fade-in-up" style="animation-delay: 500ms">
       <button
         v-for="cat in recipeStore.categories"
         :key="cat.id"
@@ -45,68 +47,73 @@
 
     <!-- 菜谱列表 -->
     <section class="feed">
-      <div v-if="recipeStore.filteredRecipes.length === 0" class="empty">
-        <div class="empty__emoji">🍳</div>
-        <p class="empty__text">没有找到相关菜谱</p>
-        <p class="empty__hint">换个关键词试试？</p>
-      </div>
-
-      <!-- 精选大卡（第一个） -->
-      <article
-        v-if="featured"
-        class="card-featured fade-in-up"
-        @click="goDetail(featured.id)"
-      >
-        <div class="card-featured__image">
-          <img :src="featured.cover" :alt="featured.title" loading="lazy" />
-          <span class="card-featured__badge">✦ 编辑精选</span>
+      <transition name="fade" mode="out-in">
+        <div v-if="recipeStore.filteredRecipes.length === 0" class="empty">
+          <div class="empty__emoji floating">🍳</div>
+          <p class="empty__text">没有找到相关菜谱</p>
+          <p class="empty__hint">换个关键词试试？</p>
         </div>
-        <div class="card-featured__content">
-          <div class="card-featured__tags">
-            <span v-for="t in featured.tags.slice(0, 2)" :key="t" class="tag">{{ t }}</span>
-          </div>
-          <h2 class="card-featured__title">{{ featured.title }}</h2>
-          <p class="card-featured__subtitle">{{ featured.subtitle }}</p>
-          <div class="card-featured__meta">
-            <span>⏱ {{ featured.time }}min</span>
-            <span>·</span>
-            <span>{{ featured.difficulty }}</span>
-            <span>·</span>
-            <span>♥ {{ formatLikes(featured.likes) }}</span>
-          </div>
-        </div>
-      </article>
 
-      <!-- 普通卡片网格 -->
-      <div class="grid">
-        <article
-          v-for="(recipe, i) in rest"
-          :key="recipe.id"
-          class="card fade-in-up"
-          :style="{ animationDelay: `${i * 60}ms` }"
-          @click="goDetail(recipe.id)"
-        >
-          <div class="card__image">
-            <img :src="recipe.cover" :alt="recipe.title" loading="lazy" />
-            <button
-              class="card__fav"
-              :class="{ 'is-faved': userStore.isFavorited(recipe.id) }"
-              @click.stop="onToggleFav(recipe.id)"
-            >
-              <span>{{ userStore.isFavorited(recipe.id) ? '♥' : '♡' }}</span>
-            </button>
-            <span class="card__time">{{ recipe.time }}min</span>
-          </div>
-          <div class="card__content">
-            <h3 class="card__title">{{ recipe.title }}</h3>
-            <p class="card__subtitle text-truncate">{{ recipe.subtitle }}</p>
-            <div class="card__meta">
-              <span class="card__author">@{{ recipe.author }}</span>
-              <span class="card__likes">♥ {{ formatLikes(recipe.likes) }}</span>
+        <div v-else>
+          <!-- 精选大卡（第一个） -->
+          <article
+            v-if="featured"
+            class="card-featured fade-in-up"
+            style="animation-delay: 600ms"
+            @click="goDetail(featured.id)"
+          >
+            <div class="card-featured__image">
+              <img :src="featured.cover" :alt="featured.title" loading="lazy" />
+              <span class="card-featured__badge">✦ 编辑精选</span>
             </div>
-          </div>
-        </article>
-      </div>
+            <div class="card-featured__content">
+              <div class="card-featured__tags">
+                <span v-for="t in featured.tags.slice(0, 2)" :key="t" class="tag">{{ t }}</span>
+              </div>
+              <h2 class="card-featured__title">{{ featured.title }}</h2>
+              <p class="card-featured__subtitle">{{ featured.subtitle }}</p>
+              <div class="card-featured__meta">
+                <span>⏱ {{ featured.time }}min</span>
+                <span>·</span>
+                <span>{{ featured.difficulty }}</span>
+                <span>·</span>
+                <span>♥ {{ formatLikes(featured.likes) }}</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- 普通卡片网格: 增加 transition-group 动画 -->
+          <transition-group name="list" tag="div" class="grid">
+            <article
+              v-for="(recipe, i) in rest"
+              :key="recipe.id"
+              class="card list-item fade-in-up"
+              :style="{ animationDelay: `${(i + 3) * 100}ms` }"
+              @click="goDetail(recipe.id)"
+            >
+              <div class="card__image">
+                <img :src="recipe.cover" :alt="recipe.title" loading="lazy" />
+                <button
+                  class="card__fav"
+                  :class="{ 'is-faved': userStore.isFavorited(recipe.id) }"
+                  @click.stop="onToggleFav(recipe.id)"
+                >
+                  <span class="fav-icon">{{ userStore.isFavorited(recipe.id) ? '♥' : '♡' }}</span>
+                </button>
+                <span class="card__time">{{ recipe.time }}min</span>
+              </div>
+              <div class="card__content">
+                <h3 class="card__title">{{ recipe.title }}</h3>
+                <p class="card__subtitle text-truncate">{{ recipe.subtitle }}</p>
+                <div class="card__meta">
+                  <span class="card__author">@{{ recipe.author }}</span>
+                  <span class="card__likes">♥ {{ formatLikes(recipe.likes) }}</span>
+                </div>
+              </div>
+            </article>
+          </transition-group>
+        </div>
+      </transition>
     </section>
 
     <!-- 页脚小字 -->
@@ -172,6 +179,30 @@ function formatLikes(n) {
 
 <style lang="scss" scoped>
 @use '@/styles/variables' as *;
+
+/* ---- 全局动画定义 ---- */
+@keyframes fadeInUp {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.fade-in-up {
+  opacity: 0;
+  animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+.floating { animation: float 3s ease-in-out infinite; }
+
+/* 列表过渡动画 */
+.list-enter-active, .list-leave-active { transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+.list-enter-from, .list-leave-to { opacity: 0; transform: translateY(20px) scale(0.95); }
+.list-leave-active { position: absolute; } /* 使得移除时其他元素平滑填补 */
+.scale-enter-active, .scale-leave-active { transition: all 0.2s; }
+.scale-enter-from, .scale-leave-to { opacity: 0; transform: scale(0.5); }
+.fade-enter-active, .fade-leave-active { transition: opacity 0.3s; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
 
 .home {
   min-height: 100vh;
@@ -271,12 +302,13 @@ function formatLikes(n) {
   background: $color-bg-elevated;
   border: 1px solid $color-border;
   border-radius: $radius-full;
-  box-shadow: $shadow-sm;
-  transition: all $duration-fast $ease-out;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 
   &:focus-within {
     border-color: $color-primary;
-    box-shadow: 0 0 0 3px rgba(232, 93, 60, 0.12);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(232, 93, 60, 0.12);
   }
 
   &__icon {
@@ -336,13 +368,16 @@ function formatLikes(n) {
     color: $color-text-secondary;
     white-space: nowrap;
     flex-shrink: 0;
-    transition: all $duration-fast $ease-out;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 
+    &:hover { transform: translateY(-2px); background: rgba(0,0,0,0.05); }
+    &:active { transform: scale(0.95); }
     &.is-active {
       background: $color-text;
       border-color: $color-text;
       color: $color-text-inverse;
-      box-shadow: 0 4px 12px rgba(58, 38, 24, 0.2);
+      box-shadow: 0 6px 16px rgba(58, 38, 24, 0.2);
+      transform: translateY(-2px);
     }
   }
 
@@ -366,10 +401,20 @@ function formatLikes(n) {
   box-shadow: $shadow-md;
   margin-bottom: $sp-6;
   cursor: pointer;
-  transition: transform $duration-base $ease-out, box-shadow $duration-base $ease-out;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease;
+  will-change: transform;
+
+  &:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 12px 24px rgba(0,0,0,0.08);
+    
+    .card-featured__image img {
+      transform: scale(1.05);
+    }
+  }
 
   &:active {
-    transform: scale(0.985);
+    transform: scale(0.97) !important;
   }
 
   &__image {
@@ -382,7 +427,7 @@ function formatLikes(n) {
       width: 100%;
       height: 100%;
       object-fit: cover;
-      transition: transform $duration-slow $ease-out;
+      transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     &::after {
@@ -472,8 +517,18 @@ function formatLikes(n) {
   overflow: hidden;
   box-shadow: $shadow-sm;
   cursor: pointer;
-  transition: transform $duration-base $ease-out, box-shadow $duration-base $ease-out;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease;
+  will-change: transform;
   opacity: 0;
+
+  &:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 12px 24px rgba(0,0,0,0.08);
+    
+    .card__image img {
+      transform: scale(1.05);
+    }
+  }
 
   &:active {
     transform: scale(0.97);
@@ -489,6 +544,7 @@ function formatLikes(n) {
       width: 100%;
       height: 100%;
       object-fit: cover;
+      transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
     }
   }
 
@@ -507,16 +563,19 @@ function formatLikes(n) {
     font-size: 18px;
     color: $color-text-secondary;
     box-shadow: $shadow-sm;
-    transition: all $duration-fast $ease-out;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 
+    &:hover { transform: scale(1.1); }
+    &:active { transform: scale(0.8); }
+    
     &.is-faved {
       color: $color-favorite;
       background: white;
-      transform: scale(1.08);
-    }
-
-    &:active {
-      transform: scale(0.9);
+      
+      span {
+        display: inline-block;
+        animation: pop 0.4s ease forwards;
+      }
     }
   }
 
@@ -588,6 +647,12 @@ function formatLikes(n) {
     font-size: $fs-sm;
     color: $color-text-tertiary;
   }
+}
+
+@keyframes pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+  100% { transform: scale(1); }
 }
 
 // ==== 页脚 ====
