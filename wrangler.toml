@@ -1,0 +1,12 @@
+# ============================================
+# Cloudflare Pages + D1 配置
+# 把 database_id 替换成你在 Cloudflare 创建的 D1 数据库 ID
+# ============================================
+name = "cookbook-app"
+compatibility_date = "2024-01-01"
+pages_build_output_dir = "dist"
+
+[[d1_databases]]
+binding      = "DB"           # Functions 里用 context.env.DB 访问
+database_name = "cookbook-db"
+database_id  = "70b3704c-ff45-41be-a71b-ea3292dee2f7"   # ← 替换这里
