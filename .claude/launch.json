@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Vite Frontend (worktree)",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "cd /Users/yangzhixin/VueProject/frontend/.claude/worktrees/romantic-lumiere-bc95f0 && npm run dev -- --port 5174"],
+      "port": 5174
+    },
+    {
+      "name": "Wrangler API (D1 local)",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "cd /Users/yangzhixin/VueProject/frontend/.claude/worktrees/romantic-lumiere-bc95f0 && npx wrangler pages dev dist --port 8788"],
+      "port": 8788
+    }
+  ]
+}
