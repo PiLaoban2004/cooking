@@ -100,13 +100,12 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, watch } from 'vue'
 import { showToast } from 'vant'
 import { useCartStore } from '@/stores/cart'
 import { useRecipeStore } from '@/stores/recipe'
 import { useMealPlanStore } from '@/stores/mealPlan'
 import { useUserStore } from '@/stores/user'
-import { useFamilyStore } from '@/stores/family'
 
 const props = defineProps({ open: Boolean })
 const emit = defineEmits(['close', 'submitted'])
@@ -115,7 +114,6 @@ const cartStore = useCartStore()
 const recipeStore = useRecipeStore()
 const mealPlanStore = useMealPlanStore()
 const userStore = useUserStore()
-const familyStore = useFamilyStore()
 
 const date = ref('today')
 const meal = ref('dinner')
@@ -131,21 +129,29 @@ const mealOptions = [
   { id: 'dinner', label: '晚餐' },
 ]
 
-// 动态读取家庭成员中角色为 cook 的人
-const targetOptions = computed(() => familyStore.cooks.map(m => m.name))
+// "发给"：从注册用户中读取 role=cook 的账号
+const cookUsers = ref([])
+const targetOptions = cookUsers
 
-// 当 cooks 列表加载好后，默认选第一个
-watch(targetOptions, (opts) => {
-  if (opts.length > 0 && !target.value) {
-    target.value = opts[0]
+async function loadCooks() {
+  try {
+    const res  = await fetch('/api/users?role=cook')
+    const data = await res.json()
+    if (data.ok) {
+      cookUsers.value = data.data.map(u => u.username)
+      // 默认选第一个（若当前未选或已选项不在列表中）
+      if (cookUsers.value.length > 0 && !cookUsers.value.includes(target.value)) {
+        target.value = cookUsers.value[0]
+      }
+    }
+  } catch (e) {
+    console.error('loadCooks error', e)
   }
-}, { immediate: true })
+}
 
-// sheet 打开时若家庭成员还没加载，触发一次
+// sheet 每次打开时重新拉取最新注册厨师列表
 watch(() => props.open, (open) => {
-  if (open && userStore.user?.id && !familyStore.fetched) {
-    familyStore.fetchMembers(userStore.user.id)
-  }
+  if (open) loadCooks()
 })
 
 function getRecipe(id) {
@@ -160,7 +166,7 @@ function onClear() {
 async function onSubmit() {
   if (cartStore.items.length === 0) return
   if (!target.value) {
-    showToast('请先在「我的」→「家庭成员」添加厨师')
+    showToast('还没有厨师账号，请先注册一个厨师身份的账号')
     return
   }
 

@@ -22,27 +22,11 @@ export const useFamilyStore = defineStore('family', () => {
       if (data.ok) {
         members.value = data.data
         fetched.value = true
-
-        // 首次空列表时种入默认成员
-        if (data.data.length === 0) {
-          await seedDefaults(ownerId)
-        }
       }
     } catch (e) {
       console.error('fetchMembers error', e)
     } finally {
       loading.value = false
-    }
-  }
-
-  /** 首次为新用户创建默认厨师成员 */
-  async function seedDefaults(ownerId) {
-    const defaults = [
-      { name: '爸爸', role: 'cook' },
-      { name: '妈妈', role: 'cook' },
-    ]
-    for (const d of defaults) {
-      await addMember({ ownerId, ...d })
     }
   }
 
